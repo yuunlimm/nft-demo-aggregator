@@ -14,10 +14,10 @@ const Index = () => {
       <Header />
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
             <TabsTrigger value="explore">Explore</TabsTrigger>
             <TabsTrigger value="list">List NFT</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            {/* <TabsTrigger value="analytics">Analytics</TabsTrigger> */}
           </TabsList>
           <TabsContent value="explore" className="space-y-4">
             <h1 className="text-4xl font-bold tracking-tight">Explore NFTs</h1>
