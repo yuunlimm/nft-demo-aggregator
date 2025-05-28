@@ -6,7 +6,9 @@ import ListNFTForm from "@/components/nft/ListNFTForm";
 import Analytics from "@/components/analytics/Analytics";
 import Header from "@/components/layout/Header";
 
-const Index = () => {
+import { Network } from "@aptos-labs/ts-sdk";
+
+const Index = ({ network }: { network: Network }) => {
   const [activeTab, setActiveTab] = useState("explore");
 
   return (
@@ -17,17 +19,16 @@ const Index = () => {
           <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
             <TabsTrigger value="explore">Explore</TabsTrigger>
             <TabsTrigger value="list">List NFT</TabsTrigger>
-            {/* <TabsTrigger value="analytics">Analytics</TabsTrigger> */}
           </TabsList>
           <TabsContent value="explore" className="space-y-4">
             <h1 className="text-4xl font-bold tracking-tight">Explore NFTs</h1>
-            <NFTGrid />
+            <NFTGrid network={network} />
           </TabsContent>
           <TabsContent value="list">
-            <ListNFTForm />
+            <ListNFTForm network={network} />
           </TabsContent>
           <TabsContent value="analytics">
-            <Analytics />
+            <Analytics network={network} />
           </TabsContent>
         </Tabs>
       </main>

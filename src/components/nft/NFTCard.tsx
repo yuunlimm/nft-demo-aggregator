@@ -37,9 +37,9 @@ export const MARKETPLACE_ADDRESS_MAP: Record<string, string> = {
 //   "wapal": "0x584b50b999c78ade62f8359c91b5165ff390338d45f8e55969a04e65d76258c9",
 // };
   
-const aptos = new Aptos(new AptosConfig({ network: Network.MAINNET }));
 
-export const NFTCard = ({ nft }: { nft: NFT }) => {
+export const NFTCard = ({ nft, network }: { nft: NFT, network: Network }) => {
+  const aptos = new Aptos(new AptosConfig({ network }));
   const { account, signAndSubmitTransaction } = useWallet();
 
   const handleBuyNow = async () => {

@@ -6,22 +6,21 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { WalletProvider } from "./components/nft/WalletProvider"; // Ensure this is correct
+import { Network } from "@aptos-labs/ts-sdk";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = ({ network }: { network: Network }) => (
   <QueryClientProvider client={queryClient}>
-    <WalletProvider> {/* 🧠 Wrap everything inside WalletProvider */}
+    <WalletProvider network={network}> {/* 🧠 Wrap everything inside WalletProvider */}
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Index network={network} />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
       </TooltipProvider>
     </WalletProvider>
   </QueryClientProvider>

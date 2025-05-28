@@ -1,13 +1,9 @@
-import { NFT, MarketplaceConfig, AggregatorStats } from '../types';
-
-// Aptos NFT Indexer GraphQL endpoint for marketplace data
-const APTOS_NFT_INDEXER_ENDPOINT = 'https://api.mainnet.aptoslabs.com/nft-aggregator-staging/v1/graphql';
-
-// Aptos Analytics REST API base URL
-const APTOS_ANALYTICS_API = 'https://api.mainnet.aptoslabs.com/v1/analytics';
+import { NFT, MarketplaceConfig, AggregatorStats, TokenMetadata } from '@/types';
+import { Network } from "@aptos-labs/ts-sdk";
+import { getEndpoints } from './endpoints';
 
 // Cache for metadata fetching
-const metadataCache: Record<string, any> = {};
+const metadataCache: Record<string, TokenMetadata> = {};
 
 // New cache for active listings with expiration
 interface ListingsCache {
@@ -20,6 +16,31 @@ interface ListingsCache {
 const listingsCache: Record<string, ListingsCache> = {};
 // Default cache expiration time (5 minutes in milliseconds)
 const CACHE_EXPIRATION = 5 * 60 * 1000;
+
+interface NFTListing {
+  token_name?: string;
+  token_data_id: string;
+  seller: string;
+  price: string;
+  marketplace: string;
+  listing_id: string;
+  last_transaction_timestamp: string;
+  collection_id: string;
+  collection_data?: {
+    collection_name?: string;
+    uri?: string;
+    creator_address?: string;
+    description?: string;
+  };
+  current_token_data?: {
+    token_uri?: string;
+    token_name?: string;
+    description?: string;
+    cdn_asset_uris?: TokenMetadata;
+    token_properties?: string;
+    collection_id?: string;
+  };
+}
 
 /**
  * Format marketplace name for display
@@ -92,7 +113,7 @@ function convertIpfsUrl(url: string): string {
  * Get the best available image URL from CDN asset URIs
  * Handles cases where cdn_image_uri is null but other fields are available
  */
-async function getBestImageUrl(cdnAssetUris: any, token_name: string, token_uri?: string): Promise<string> {
+async function getBestImageUrl(cdnAssetUris: TokenMetadata, token_name: string, token_uri?: string): Promise<string> {
   if (!cdnAssetUris) return '';
   
   // First try the CDN image URI if available (second priority)
@@ -209,6 +230,8 @@ async function getBestImageUrl(cdnAssetUris: any, token_name: string, token_uri?
         }
       }
     } catch (error) {
+      console.error('Error fetching metadata:', error);
+      return '';
     }
   }
   
@@ -258,6 +281,7 @@ async function getBestImageUrl(cdnAssetUris: any, token_name: string, token_uri?
  * @param params Optional parameters for filtering and pagination
  */
 export async function fetchActiveListings(params: {
+  network: Network;
   page?: number; 
   pageSize?: number; 
   collection?: string; 
@@ -266,8 +290,9 @@ export async function fetchActiveListings(params: {
   orderByClause?: string;
   hideIncompleteMetadata?: boolean;
   skipCache?: boolean;
-} = {}): Promise<{ nfts: NFT[]; total: number }> {
+} = { network: Network.MAINNET }): Promise<{ nfts: NFT[]; total: number }> {
   const { 
+    network,
     page = 1, 
     pageSize = 10, 
     collection = undefined, 
@@ -277,6 +302,8 @@ export async function fetchActiveListings(params: {
     hideIncompleteMetadata = false,
     skipCache = false
   } = params;
+
+  const endpoints = getEndpoints(network);
 
   // Create a cache key from the params
   const cacheParams = { page, pageSize, collection, marketplace, sortOrder, hideIncompleteMetadata };
@@ -395,7 +422,7 @@ export async function fetchActiveListings(params: {
       }
     `;
 
-    const response = await fetchWithRetry(APTOS_NFT_INDEXER_ENDPOINT, {
+    const response = await fetchWithRetry(endpoints.nftIndexer, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -426,7 +453,7 @@ export async function fetchActiveListings(params: {
 
     // Transform the data to match our NFT type and filter out items with no token name
     const nftsPromises = listings
-      .filter((listing: any) => {
+      .filter((listing: NFTListing) => {
         // For Topaz, be more lenient and keep all listings
         if (listing.marketplace && listing.marketplace.toLowerCase().includes('topaz')) {
           return true;
@@ -436,7 +463,7 @@ export async function fetchActiveListings(params: {
         return !!(listing.token_name || 
                   (listing.current_token_data && listing.current_token_data.token_name));
       })
-      .map(async (listing: any): Promise<NFT> => {
+      .map(async (listing: NFTListing): Promise<NFT> => {
         const tokenData = listing.current_token_data || {};
         const collectionData = listing.collection_data || {};
         
@@ -531,7 +558,7 @@ export async function fetchActiveListings(params: {
  * Call this function when data needs to be refreshed
  * @param specificParams Optional specific params to invalidate, or all cache if undefined
  */
-export function invalidateListingsCache(specificParams?: any): void {
+export function invalidateListingsCache(specificParams?: Record<string, unknown>): void {
   if (specificParams) {
     // Invalidate specific cache entry
     const cacheKey = JSON.stringify(specificParams);
@@ -549,9 +576,11 @@ export function invalidateListingsCache(specificParams?: any): void {
 /**
  * Fetch details for a specific NFT by ID
  */
-export async function fetchNFTDetails(nftId: string): Promise<NFT | null> {
+export async function fetchNFTDetails(nftId: string, network: Network = Network.MAINNET): Promise<NFT | null> {
+  const endpoints = getEndpoints(network);
+  
   try {
-    const response = await fetchWithRetry(APTOS_NFT_INDEXER_ENDPOINT, {
+    const response = await fetchWithRetry(endpoints.nftIndexer, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -665,8 +694,9 @@ export async function fetchNFTDetails(nftId: string): Promise<NFT | null> {
 /**
  * Fetch marketplace configurations
  */
-export async function fetchMarketplaceConfigs(): Promise<MarketplaceConfig[]> {
-  // Get actual marketplaces from the active listings
+export async function fetchMarketplaceConfigs(network: Network = Network.MAINNET): Promise<MarketplaceConfig[]> {
+  const endpoints = getEndpoints(network);
+  
   try {
     const query = `
       query GetActiveMarketplaces {
@@ -679,7 +709,7 @@ export async function fetchMarketplaceConfigs(): Promise<MarketplaceConfig[]> {
       }
     `;
     
-    const response = await fetchWithRetry(APTOS_NFT_INDEXER_ENDPOINT, {
+    const response = await fetchWithRetry(endpoints.nftIndexer, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -709,7 +739,7 @@ export async function fetchMarketplaceConfigs(): Promise<MarketplaceConfig[]> {
     // Group marketplaces by their base name
     const groupedMarketplaces: Record<string, string[]> = {};
     
-    marketplaceItems.forEach((item: any) => {
+    marketplaceItems.forEach((item: NFTListing) => {
       const marketplaceName = item.marketplace || 'unknown';
       // Skip Topaz (deprecated)
       if (marketplaceName.toLowerCase().includes('topaz')) {
@@ -717,7 +747,7 @@ export async function fetchMarketplaceConfigs(): Promise<MarketplaceConfig[]> {
       }
       
       // For TradePort, use a consistent base name
-      let baseName = marketplaceName.toLowerCase().includes('tradeport') 
+      const baseName = marketplaceName.toLowerCase().includes('tradeport') 
         ? 'tradeport'
         : getBaseMarketplaceName(marketplaceName);
       
@@ -768,9 +798,11 @@ export async function fetchMarketplaceConfigs(): Promise<MarketplaceConfig[]> {
 /**
  * Fetch aggregator statistics
  */
-export async function fetchAggregatorStats(): Promise<AggregatorStats> {
+export async function fetchAggregatorStats(network: Network = Network.MAINNET): Promise<AggregatorStats> {
+  const endpoints = getEndpoints(network);
+  
   try {
-    const marketplaceConfigs = await fetchMarketplaceConfigs();
+    const marketplaceConfigs = await fetchMarketplaceConfigs(network);
     
     // 1. Get total active listings count from GraphQL - this one works
     const listingsCountQuery = `
@@ -787,7 +819,7 @@ export async function fetchAggregatorStats(): Promise<AggregatorStats> {
       }
     `;
 
-    const listingsResponse = await fetchWithRetry(APTOS_NFT_INDEXER_ENDPOINT, {
+    const listingsResponse = await fetchWithRetry(endpoints.nftIndexer, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: listingsCountQuery }),
@@ -861,24 +893,24 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 0, ba
 
 /**
  * Fetch top NFT collections sorted by trading volume
- * @param params Optional parameters for fetching collections
  */
 export async function fetchCollectionsByVolume(params: {
+  network?: Network;
   limit?: number;
   offset?: number;
   timePeriod?: '1h' | '6h' | '24h' | '1d' | '7d' | '30d';
-} = {}): Promise<any[]> {
+} = {}): Promise<CollectionData[]> {
   const { 
+    network = Network.MAINNET,
     limit = 10, 
     offset = 0, 
     timePeriod = '24h' 
   } = params;
 
-  console.log(`Fetching collections by volume`, { limit, offset, timePeriod });
-
+  const endpoints = getEndpoints(network);
+  
   try {
-    // Build the URL with query parameters
-    const url = new URL(`${APTOS_ANALYTICS_API}/nft/collection/list_by_volume`);
+    const url = new URL(`${endpoints.analytics}/nft/collection/list_by_volume`);
     url.searchParams.append('limit', limit.toString());
     url.searchParams.append('offset', offset.toString());
     url.searchParams.append('time_period', timePeriod);
@@ -895,11 +927,9 @@ export async function fetchCollectionsByVolume(params: {
 
     // Process the collections to convert amounts
     if (data.data && Array.isArray(data.data)) {
-      return data.data.map((collection: any) => ({
+      return data.data.map((collection: CollectionData) => ({
         ...collection,
-        // Convert volume from octas to APT for display
         total_volume_apt: formatAPTAmount(collection.total_volume_apt),
-        // Add extra fields that might be useful
         volume_change_percentage: collection.volume_change_percentage || 0,
       }));
     }
@@ -913,24 +943,24 @@ export async function fetchCollectionsByVolume(params: {
 
 /**
  * Fetch top NFT collections sorted by number of sales
- * @param params Optional parameters for fetching collections
  */
 export async function fetchCollectionsBySales(params: {
+  network?: Network;
   limit?: number;
   offset?: number;
   timePeriod?: '1h' | '6h' | '24h' | '1d' | '7d' | '30d';
-} = {}): Promise<any[]> {
+} = {}): Promise<CollectionData[]> {
   const { 
+    network = Network.MAINNET,
     limit = 10, 
     offset = 0, 
     timePeriod = '24h' 
   } = params;
 
-  console.log(`Fetching collections by sales`, { limit, offset, timePeriod });
-
+  const endpoints = getEndpoints(network);
+  
   try {
-    // Build the URL with query parameters
-    const url = new URL(`${APTOS_ANALYTICS_API}/nft/collection/list_by_sales`);
+    const url = new URL(`${endpoints.analytics}/nft/collection/list_by_sales`);
     url.searchParams.append('limit', limit.toString());
     url.searchParams.append('offset', offset.toString());
     url.searchParams.append('time_period', timePeriod);
@@ -947,9 +977,8 @@ export async function fetchCollectionsBySales(params: {
 
     // Process the collections
     if (data.data && Array.isArray(data.data)) {
-      return data.data.map((collection: any) => ({
+      return data.data.map((collection: CollectionData) => ({
         ...collection,
-        // Convert volume from octas to APT for display
         total_volume_apt: formatAPTAmount(collection.total_volume_apt),
       }));
     }
@@ -963,24 +992,24 @@ export async function fetchCollectionsBySales(params: {
 
 /**
  * Fetch top NFT collections sorted by floor price
- * @param params Optional parameters for fetching collections
  */
 export async function fetchCollectionsByFloorPrice(params: {
+  network?: Network;
   limit?: number;
   offset?: number;
   timePeriod?: '1h' | '6h' | '24h' | '1d' | '7d' | '30d';
-} = {}): Promise<any[]> {
+} = {}): Promise<CollectionData[]> {
   const { 
+    network = Network.MAINNET,
     limit = 10, 
     offset = 0, 
     timePeriod = '24h' 
   } = params;
 
-  console.log(`Fetching collections by floor price`, { limit, offset, timePeriod });
-
+  const endpoints = getEndpoints(network);
+  
   try {
-    // Build the URL with query parameters
-    const url = new URL(`${APTOS_ANALYTICS_API}/nft/collection/list_by_floor_price`);
+    const url = new URL(`${endpoints.analytics}/nft/collection/list_by_floor_price`);
     url.searchParams.append('limit', limit.toString());
     url.searchParams.append('offset', offset.toString());
     url.searchParams.append('time_period', timePeriod);
@@ -997,11 +1026,9 @@ export async function fetchCollectionsByFloorPrice(params: {
 
     // Process the collections
     if (data.data && Array.isArray(data.data)) {
-      return data.data.map((collection: any) => ({
+      return data.data.map((collection: CollectionData) => ({
         ...collection,
-        // Convert floor price from octas to APT for display
         floor_price_apt: formatAPTAmount(collection.floor_price_apt),
-        // Convert volume from octas to APT for display if available
         total_volume_apt: collection.total_volume_apt ? formatAPTAmount(collection.total_volume_apt) : undefined,
       }));
     }
@@ -1015,25 +1042,23 @@ export async function fetchCollectionsByFloorPrice(params: {
 
 /**
  * Get collection details including total sales volume, top buyers, top sellers
- * @param collectionId The collection ID to fetch details for
  */
-export async function fetchCollectionDetails(collectionId: string): Promise<any> {
-  console.log(`Fetching details for collection: ${collectionId}`);
+export async function fetchCollectionDetails(collectionId: string, network: Network = Network.MAINNET): Promise<CollectionDetails> {
+  const endpoints = getEndpoints(network);
   
   try {
-    // Make parallel requests to get all collection details
     const [totalSalesResponse, totalVolumeResponse, topBuyersResponse, topSellersResponse] = await Promise.all([
-      fetch(`${APTOS_ANALYTICS_API}/nft/collection/total_sales_count?collection_id=${collectionId}`),
-      fetch(`${APTOS_ANALYTICS_API}/nft/collection/total_sales_volume?collection_id=${collectionId}`),
-      fetch(`${APTOS_ANALYTICS_API}/nft/collection/top_buyer?collection_id=${collectionId}&limit=5`),
-      fetch(`${APTOS_ANALYTICS_API}/nft/collection/top_seller?collection_id=${collectionId}&limit=5`)
+      fetch(`${endpoints.analytics}/nft/collection/total_sales_count?collection_id=${collectionId}`),
+      fetch(`${endpoints.analytics}/nft/collection/total_sales_volume?collection_id=${collectionId}`),
+      fetch(`${endpoints.analytics}/nft/collection/top_buyer?collection_id=${collectionId}&limit=5`),
+      fetch(`${endpoints.analytics}/nft/collection/top_seller?collection_id=${collectionId}&limit=5`)
     ]);
     
     // Process responses
     let totalSales = 0;
     let totalVolume = 0;
-    let topBuyers: any[] = [];
-    let topSellers: any[] = [];
+    let topBuyers: CollectionBuyer[] = [];
+    let topSellers: CollectionSeller[] = [];
     
     if (totalSalesResponse.ok) {
       const salesData = await totalSalesResponse.json();
@@ -1047,7 +1072,7 @@ export async function fetchCollectionDetails(collectionId: string): Promise<any>
     
     if (topBuyersResponse.ok) {
       const buyersData = await topBuyersResponse.json();
-      topBuyers = (buyersData.data || []).map((buyer: any) => ({
+      topBuyers = (buyersData.data || []).map((buyer: CollectionBuyer) => ({
         ...buyer,
         total_spent: formatAPTAmount(buyer.total_spent)
       }));
@@ -1055,7 +1080,7 @@ export async function fetchCollectionDetails(collectionId: string): Promise<any>
     
     if (topSellersResponse.ok) {
       const sellersData = await topSellersResponse.json();
-      topSellers = (sellersData.data || []).map((seller: any) => ({
+      topSellers = (sellersData.data || []).map((seller: CollectionSeller) => ({
         ...seller,
         total_volume: formatAPTAmount(seller.total_volume)
       }));
@@ -1082,17 +1107,16 @@ export async function fetchCollectionDetails(collectionId: string): Promise<any>
 
 /**
  * Get marketplace statistics
- * @param marketplace The marketplace identifier
  */
-export async function fetchMarketplaceStats(marketplace: string): Promise<any> {
-  console.log(`Fetching stats for marketplace: ${marketplace}`);
+export async function fetchMarketplaceStats(marketplace: string, network: Network = Network.MAINNET): Promise<MarketplaceStats> {
+  const endpoints = getEndpoints(network);
   
   try {
-    const response = await fetch(`${APTOS_ANALYTICS_API}/nft/marketplace/total_sales_count?marketplace=${marketplace}`);
+    const response = await fetch(`${endpoints.analytics}/nft/marketplace/total_sales_count?marketplace=${marketplace}`);
     
     if (!response.ok) {
       console.error(`REST API request failed: ${response.status} ${response.statusText}`);
-      return { total_sales: 0 };
+      return { marketplace, total_sales: 0 };
     }
     
     const data = await response.json();
@@ -1114,11 +1138,12 @@ export async function fetchMarketplaceStats(marketplace: string): Promise<any> {
  * @param octas Amount in octas (the smallest unit of APT)
  * @returns Formatted APT amount
  */
-function formatAPTAmount(octas: string | number): number {
+function formatAPTAmount(octas: unknown): number {
   if (!octas) return 0;
   
   // Convert string to number if necessary
-  const octasNum = typeof octas === 'string' ? parseFloat(octas) : octas;
+  const octasNum = typeof octas === 'string' ? parseFloat(octas) : 
+                  typeof octas === 'number' ? octas : 0;
   
   // Convert from octas to APT (1 APT = 100,000,000 octas)
   return octasNum / 100000000;
@@ -1128,4 +1153,34 @@ export interface CollectionRankingOptions {
   timePeriod?: '1h' | '6h' | '24h' | '7d' | '30d';
   limit?: number;
   offset?: number;
+}
+
+interface CollectionData {
+  total_volume_apt: string | number;
+  floor_price_apt?: string | number;
+  volume_change_percentage?: number;
+  [key: string]: unknown;
+}
+
+interface CollectionBuyer {
+  address: string;
+  total_spent: string | number;
+}
+
+interface CollectionSeller {
+  address: string;
+  total_volume: string | number;
+}
+
+interface CollectionDetails {
+  collection_id: string;
+  total_sales: number;
+  total_volume_apt: number;
+  top_buyers: CollectionBuyer[];
+  top_sellers: CollectionSeller[];
+}
+
+interface MarketplaceStats {
+  marketplace: string;
+  total_sales: number;
 }

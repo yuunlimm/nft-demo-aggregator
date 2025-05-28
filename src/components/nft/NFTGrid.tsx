@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { NFTCard } from "./NFTCard";
 import { FilterBar } from "./FilterBar";
 import { fetchActiveListings, fetchMarketplaceConfigs } from "../../lib/api";
+import { Network } from "@aptos-labs/ts-sdk";
 
-const NFTGrid = () => {
+const NFTGrid = ({ network }: { network: Network }) => {
   const [marketplace, setMarketplace] = useState("all");
   const [collection, setCollection] = useState("all");
   const [sortBy, setSortBy] = useState("timestamp_desc");
@@ -14,8 +15,8 @@ const NFTGrid = () => {
   useEffect(() => {
     async function loadMarketplaces() {
       const configs = await fetchMarketplaceConfigs();
-      const names = configs.map((m) => m.name); // e.g. "Topaz", "Tradeport"
-      setMarketplaces(["All", ...names]); // prepend "All"
+      const names = configs.map((m) => m.name); 
+      setMarketplaces(["All", ...names]);
     }
   
     loadMarketplaces();
@@ -26,6 +27,7 @@ const NFTGrid = () => {
       setLoading(true);
       try {
         const { nfts: fetchedNFTs } = await fetchActiveListings({
+          network: network,
           marketplace: marketplace !== "all" ? marketplace : undefined,
           collection: collection !== "all" ? collection : undefined,
           sortOrder: sortBy,
@@ -42,7 +44,7 @@ const NFTGrid = () => {
     };
 
     loadListings();
-  }, [marketplace, collection, sortBy]);
+  }, [marketplace, collection, sortBy, network]);
 
   return (
     <div>
@@ -58,7 +60,7 @@ const NFTGrid = () => {
       ) : nfts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {nfts.map((nft) => (
-            <NFTCard key={nft.id} nft={nft} />
+            <NFTCard key={nft.id} nft={nft} network={network} />
           ))}
         </div>
       ) : (

@@ -7,8 +7,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CollectionsTable } from "./CollectionsTable";
+import { Network } from "@aptos-labs/ts-sdk";
 
-const Analytics = () => {
+const Analytics = ({ network }: { network: Network }) => {
   return (
     <div className="space-y-8">
       <h1 className="text-4xl font-bold">Analytics</h1>

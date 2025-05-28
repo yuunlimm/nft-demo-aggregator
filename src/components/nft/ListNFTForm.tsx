@@ -31,10 +31,9 @@ import {
   AptosSignInOutput,
 } from "@aptos-labs/wallet-adapter-core";
 
-const aptos = new Aptos(new AptosConfig({ network: Network.MAINNET }));
-
-const ListNFTForm = () => {
+const ListNFTForm = ({ network }: { network: Network }) => {
   const { account, connected, connect, wallets, signAndSubmitTransaction } = useWallet();
+  const aptos = new Aptos(new AptosConfig({ network }));
   const [walletNFTs, setWalletNFTs] = useState<any[]>([]);
   const [selectedNFT, setSelectedNFT] = useState<any>(null);
   const [price, setPrice] = useState("");
