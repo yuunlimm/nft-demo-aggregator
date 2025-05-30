@@ -15,7 +15,7 @@ const NETWORK_ENDPOINTS: Record<Network, NetworkEndpoints> = {
     analytics: 'https://api.testnet.aptoslabs.com/v1/analytics',
   },
   [Network.DEVNET]: {
-    nftIndexer: 'https://api.devnet.aptoslabs.com/nft-aggregator-staging/v1/graphql',
+    nftIndexer: 'https://api.devnet.staging.aptoslabs.com/nft-aggregator-staging/v1/graphql',
     analytics: 'https://api.devnet.aptoslabs.com/v1/analytics',
   },
   [Network.LOCAL]: {
