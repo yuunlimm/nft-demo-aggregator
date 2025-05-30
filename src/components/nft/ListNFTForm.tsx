@@ -31,6 +31,39 @@ import {
   AptosSignInOutput,
 } from "@aptos-labs/wallet-adapter-core";
 
+interface NFT {
+  token_data_id: string;
+  token_standard: string;
+  current_token_data: {
+    token_name: string;
+    description: string;
+    image_url?: string;
+    object_core?: string;
+    collection_id: string;
+    is_fungible_v2?: boolean;
+    last_transaction_timestamp: string;
+    last_transaction_version: string;
+    token_uri?: string;
+    current_collection?: {
+      collection_id: string;
+      collection_name: string;
+      creator_address: string;
+      description: string;
+      token_standard: string;
+    };
+  };
+  token_properties_mutated_v1?: unknown;
+  table_type_v1?: string;
+  storage_id: string;
+  property_version_v1: string;
+  owner_address: string;
+  last_transaction_version: string;
+  last_transaction_timestamp: string;
+  amount: string;
+}
+
+const aggregatorAddress = "0xda55044800bd23abdf48b304f3cb2b55ca49b304ad4337654c0ea9ffbf85d58e";
+
 const ListNFTForm = ({ network }: { network: Network }) => {
   const { account, connected, connect, wallets, signAndSubmitTransaction } = useWallet();
   const aptos = new Aptos(new AptosConfig({ network }));
@@ -86,14 +119,26 @@ const ListNFTForm = ({ network }: { network: Network }) => {
       const txn: InputTransactionData = {
         sender: account!.address,
         data: {
-          function: `${marketplace}::marketplace::place_listing`,
+          function: network === Network.DEVNET
+            ? `${aggregatorAddress}::marketplace_aggregator::place_listing`
+            : `${marketplace}::marketplace::place_listing`,
           typeArguments: [],
-          functionArguments: [
-            selectedNFT.token_data_id.toString(),
-            feeSchedule.toString(),
-            faMetadata.toString(),
-            priceInOctas.toString(),
-          ],
+          functionArguments: network === Network.DEVNET
+            ? [
+            // revisit this
+                marketplace.toLowerCase(),
+                marketplace,
+                selectedNFT.token_data_id.toString(),
+                feeSchedule.toString(),
+                faMetadata.toString(),
+                priceInOctas.toString(),
+              ]
+            : [
+                selectedNFT.token_data_id.toString(),
+                feeSchedule.toString(),
+                faMetadata.toString(),
+                priceInOctas.toString(),
+              ],
         },
       };
 

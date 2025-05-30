@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
@@ -19,14 +18,46 @@ interface NFT {
   marketplace?: string; // address string like "0xabc..."
 }
 
-export const MARKETPLACE_ADDRESS_MAP: Record<string, string> = {
-  "bluemove": "0xd1fd99c1944b84d1670a2536417e997864ad12303d19eac725891691b04d614e",
-  "tradeport_v1": "0xe11c12ec495f3989c35e1c6a0af414451223305b579291fc8f3d9d0575a23c26",
-  "tradeport_v2": "0xe11c12ec495f3989c35e1c6a0af414451223305b579291fc8f3d9d0575a23c26",
-  "demo marketplace": "0x27594035ca1c038bbe322e681b7d2a9c53c58bde432626bfcdd85d19dda222a5",
-  "wapal": "0x584b50b999c78ade62f8359c91b5165ff390338d45f8e55969a04e65d76258c9",
-  "third_party_marketplace": "0xaed4462e5717f62045f32a4c5de793caf235940ef42edfdc1b7b73bc292ee2e6",
+export const MARKETPLACE_ADDRESS_MAP: Record<Network, Record<string, string>> = {
+  [Network.MAINNET]: {
+    "bluemove": "0xd1fd99c1944b84d1670a2536417e997864ad12303d19eac725891691b04d614e",
+    "tradeport_v1": "0xe11c12ec495f3989c35e1c6a0af414451223305b579291fc8f3d9d0575a23c26",
+    "tradeport_v2": "0xe11c12ec495f3989c35e1c6a0af414451223305b579291fc8f3d9d0575a23c26",
+    "demo marketplace": "0x27594035ca1c038bbe322e681b7d2a9c53c58bde432626bfcdd85d19dda222a5",
+    "wapal": "0x584b50b999c78ade62f8359c91b5165ff390338d45f8e55969a04e65d76258c9",
+    "third_party_marketplace": "0xaed4462e5717f62045f32a4c5de793caf235940ef42edfdc1b7b73bc292ee2e6",
+  },
+  [Network.DEVNET]: {
+    "demo marketplace": "0x48ac47b64f890af66bb25b147f1d0afa439a584930f0f5060919e73f510ba80a",
+    "third_party_marketplace": "0x9079b776f1e977eae264e8fccbc6ee7027df7262d129e43b7835f8cdd77b522b",
+  },
+  [Network.TESTNET]: {
+    "bluemove": "",
+    "tradeport_v1": "",
+    "tradeport_v2": "",
+    "demo marketplace": "",
+    "wapal": "",
+    "third_party_marketplace": "",
+  },
+  [Network.LOCAL]: {
+    "bluemove": "",
+    "tradeport_v1": "",
+    "tradeport_v2": "",
+    "demo marketplace": "",
+    "wapal": "",
+    "third_party_marketplace": "",
+  },
+  [Network.CUSTOM]: {
+    "bluemove": "",
+    "tradeport_v1": "",
+    "tradeport_v2": "",
+    "demo marketplace": "",
+    "wapal": "",
+    "third_party_marketplace": "",
+  }
 };
+
+const aggregatorAddress = "0xda55044800bd23abdf48b304f3cb2b55ca49b304ad4337654c0ea9ffbf85d58e";
 
 // export const MARKETPLACE_MODULE_MAP: Record<string, string> = {
 //   "bluemove": "0xabc...123",
@@ -48,7 +79,7 @@ export const NFTCard = ({ nft, network }: { nft: NFT, network: Network }) => {
       return;
     }
 
-    const moduleAddress = MARKETPLACE_ADDRESS_MAP[nft.marketplace.toLowerCase()];
+    const moduleAddress = MARKETPLACE_ADDRESS_MAP[network][nft.marketplace.toLowerCase()];
     if (!moduleAddress) {
       toast.error(`Unknown marketplace: ${nft.marketplace}`);
       console.error(`Unknown marketplace: ${nft.marketplace}`);
@@ -59,9 +90,13 @@ export const NFTCard = ({ nft, network }: { nft: NFT, network: Network }) => {
       const tx: InputTransactionData = {
         sender: account.address,
         data: {
-          function: `${moduleAddress}::marketplace::fill_listing`,
-          typeArguments: [],
-          functionArguments: [nft.listing_id],
+          function: network === Network.DEVNET 
+            ? `${aggregatorAddress}::marketplace_aggregator::purchase`
+            : `${moduleAddress}::marketplace::fill_listing`,
+          typeArguments: [ network  === Network.DEVNET ? "0x1::aptos_coin::AptosCoin" : "" ],
+          functionArguments: network === Network.DEVNET 
+            ? [moduleAddress, nft.listing_id]
+            : [nft.listing_id],
         },
       };
 
@@ -81,7 +116,7 @@ export const NFTCard = ({ nft, network }: { nft: NFT, network: Network }) => {
       return;
     }
 
-    const moduleAddress = MARKETPLACE_ADDRESS_MAP[nft.marketplace.toLowerCase()];
+    const moduleAddress = MARKETPLACE_ADDRESS_MAP[network][nft.marketplace.toLowerCase()];
     if (!moduleAddress) {
       toast.error(`Unknown marketplace: ${nft.marketplace}`);
       console.error(`Unknown marketplace: ${nft.marketplace}`);
@@ -92,9 +127,13 @@ export const NFTCard = ({ nft, network }: { nft: NFT, network: Network }) => {
       const tx: InputTransactionData = {
         sender: account.address,
         data: {
-          function: `${moduleAddress}::marketplace::cancel_listing`,
+          function: network === Network.DEVNET 
+            ? `${aggregatorAddress}::marketplace_aggregator::cancel_listing`
+            : `${moduleAddress}::marketplace::cancel_listing`,
           typeArguments: [],
-          functionArguments: [nft.listing_id],
+          functionArguments: network === Network.DEVNET 
+            ? [moduleAddress, nft.listing_id]
+            : [nft.listing_id],
         },
       };
 
@@ -106,7 +145,6 @@ export const NFTCard = ({ nft, network }: { nft: NFT, network: Network }) => {
       console.error("Cancel listing failed:", e);
       toast.error("Failed to cancel listing.");
     }
-
   };
 
   return (
