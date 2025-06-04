@@ -130,7 +130,7 @@ export const NFTCard = ({ nft, network }: { nft: NFT, network: Network }) => {
           function: network === Network.DEVNET 
             ? `${aggregatorAddress}::marketplace_aggregator::cancel_listing`
             : `${moduleAddress}::marketplace::cancel_listing`,
-          typeArguments: [],
+          typeArguments: network === Network.DEVNET ? ["0x1::aptos_coin::AptosCoin"] : [],
           functionArguments: network === Network.DEVNET 
             ? [moduleAddress, nft.listing_id]
             : [nft.listing_id],

@@ -361,6 +361,8 @@ export async function fetchActiveListings(params: {
         marketplaceFilter = `marketplace: {_in: ["tradeport_v1", "tradeport_v2"]}`;
       } else if (marketplace.toLowerCase().includes('demo')) {
         marketplaceFilter = `marketplace: {_eq: "demo_marketplace"}`;
+      } else if (marketplace.toLowerCase().includes('third')) {
+        marketplaceFilter = `marketplace: {_eq: "third_party"}`;
       } else {
         marketplaceFilter = `marketplace: {_ilike: "${marketplace}"}`;
       }
@@ -424,11 +426,8 @@ export async function fetchActiveListings(params: {
 
     const response = await fetchWithRetry(endpoints.nftIndexer, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({ query: smallQuery }),
-    }, 0); // No retries
+    }, 0, 5000, network); // No retries
 
     if (!response.ok) {
       console.error(`GraphQL request failed: ${response.status} ${response.statusText}`);
@@ -582,9 +581,6 @@ export async function fetchNFTDetails(nftId: string, network: Network = Network.
   try {
     const response = await fetchWithRetry(endpoints.nftIndexer, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
         query: `
     query GetNFTDetailsById {
@@ -621,7 +617,7 @@ export async function fetchNFTDetails(nftId: string, network: Network = Network.
 
     }
   ` }),
-    });
+    }, 0, 5000, network);
 
     if (!response.ok) {
       console.error(`GraphQL request failed: ${response.status} ${response.statusText}`);
@@ -694,7 +690,7 @@ export async function fetchNFTDetails(nftId: string, network: Network = Network.
 /**
  * Fetch marketplace configurations
  */
-export async function fetchMarketplaceConfigs(network: Network = Network.MAINNET): Promise<MarketplaceConfig[]> {
+export async function fetchMarketplaceConfigs(network: Network): Promise<MarketplaceConfig[]> {
   const endpoints = getEndpoints(network);
   
   try {
@@ -711,11 +707,8 @@ export async function fetchMarketplaceConfigs(network: Network = Network.MAINNET
     
     const response = await fetchWithRetry(endpoints.nftIndexer, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({ query }),
-    });
+    }, 0, 5000, network);
 
     if (!response.ok) {
       console.error(`GraphQL request failed: ${response.status} ${response.statusText}`);
@@ -735,6 +728,8 @@ export async function fetchMarketplaceConfigs(network: Network = Network.MAINNET
     if (marketplaceItems.length === 0) {
       return [];
     }
+
+    console.log("marketplace", marketplaceItems);
     
     // Group marketplaces by their base name
     const groupedMarketplaces: Record<string, string[]> = {};
@@ -798,7 +793,7 @@ export async function fetchMarketplaceConfigs(network: Network = Network.MAINNET
 /**
  * Fetch aggregator statistics
  */
-export async function fetchAggregatorStats(network: Network = Network.MAINNET): Promise<AggregatorStats> {
+export async function fetchAggregatorStats(network: Network): Promise<AggregatorStats> {
   const endpoints = getEndpoints(network);
   
   try {
@@ -821,9 +816,8 @@ export async function fetchAggregatorStats(network: Network = Network.MAINNET): 
 
     const listingsResponse = await fetchWithRetry(endpoints.nftIndexer, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: listingsCountQuery }),
-    });
+    }, 0, 5000, network);
   
     let totalActiveListings = 0;
 
@@ -881,10 +875,20 @@ export async function disconnectMarketplace(marketplaceId: string): Promise<bool
 /**
  * Helper function for GraphQL requests with retry logic
  */
-async function fetchWithRetry(url: string, options: RequestInit, retries = 0, backoff = 5000): Promise<Response> {
+async function fetchWithRetry(url: string, options: RequestInit, retries = 0, backoff = 5000, network?: Network): Promise<Response> {
+  // Merge auth headers with any provided headers
+  const authHeaders = getAuthHeaders(network);
+  const mergedOptions = {
+    ...options,
+    headers: {
+      ...authHeaders,
+      ...(options.headers || {})
+    }
+  };
+
   // No retries - just forward the fetch call directly
   try {
-    return await fetch(url, options);
+    return await fetch(url, mergedOptions);
   } catch (error) {
     console.error(`Fetch error:`, error);
     throw error instanceof Error ? error : new Error(String(error));
@@ -1183,4 +1187,44 @@ interface CollectionDetails {
 interface MarketplaceStats {
   marketplace: string;
   total_sales: number;
+}
+
+/**
+ * Get headers with API key authentication for Aptos API requests
+ * Maps network to appropriate environment variable
+ */
+function getAuthHeaders(network?: Network): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+
+  // Map network to appropriate environment variable
+  let apiKey: string | undefined;
+  
+  if (network) {
+    switch (network) {
+      case Network.MAINNET:
+        apiKey = import.meta.env.VITE_APTOS_API_KEY_MAINNET || import.meta.env.VITE_APTOS_API_KEY;
+        break;
+      case Network.TESTNET:
+        apiKey = import.meta.env.VITE_APTOS_API_KEY_TESTNET;
+        break;
+      case Network.DEVNET:
+        apiKey = import.meta.env.VITE_APTOS_API_KEY_DEVNET;
+        break;
+      default:
+        apiKey = import.meta.env.VITE_APTOS_API_KEY;
+        break;
+    }
+  } else {
+    // Fallback to default API key
+    apiKey = import.meta.env.VITE_APTOS_API_KEY;
+  }
+
+  // Add Authorization header if API key is available
+  if (apiKey && apiKey !== 'YOUR_API_KEY_HERE') {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+
+  return headers;
 }

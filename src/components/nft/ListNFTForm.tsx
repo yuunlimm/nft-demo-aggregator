@@ -71,8 +71,8 @@ const ListNFTForm = ({ network }: { network: Network }) => {
   const [selectedNFT, setSelectedNFT] = useState<any>(null);
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
-  const [feeSchedule, setFeeSchedule] = useState("0x1a134b39fec9caaa286ec97e65b9fef4aa1e40da42ae9135b3077cfa19cb1b5b");
-  const [marketplace, setMarketplace] = useState("0x27594035ca1c038bbe322e681b7d2a9c53c58bde432626bfcdd85d19dda222a5");
+  const [feeSchedule, setFeeSchedule] = useState("0x5e2b865dd4703915771c0f2ea01dd531443f78d969f2281db7943789e8a5d1a7");
+  const [marketplace, setMarketplace] = useState("0x48ac47b64f890af66bb25b147f1d0afa439a584930f0f5060919e73f510ba80a");
   const [faMetadata, setFaMetadata] = useState("0xa");
 
   useEffect(() => {
@@ -116,20 +116,19 @@ const ListNFTForm = ({ network }: { network: Network }) => {
       console.log(faMetadata.toString());
       console.log(priceInOctas);
 
+      console.log("network", network);
       const txn: InputTransactionData = {
         sender: account!.address,
         data: {
           function: network === Network.DEVNET
             ? `${aggregatorAddress}::marketplace_aggregator::place_listing`
             : `${marketplace}::marketplace::place_listing`,
-          typeArguments: [],
+          typeArguments: network === Network.DEVNET ? ["0x1::aptos_coin::AptosCoin"] : [],
           functionArguments: network === Network.DEVNET
             ? [
-            // revisit this
-                marketplace.toLowerCase(),
-                marketplace,
-                selectedNFT.token_data_id.toString(),
-                feeSchedule.toString(),
+              marketplace,
+              selectedNFT.token_data_id.toString(),
+              feeSchedule.toString(),
                 faMetadata.toString(),
                 priceInOctas.toString(),
               ]

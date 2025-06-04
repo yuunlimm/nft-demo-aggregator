@@ -14,7 +14,7 @@ const NFTGrid = ({ network }: { network: Network }) => {
 
   useEffect(() => {
     async function loadMarketplaces() {
-      const configs = await fetchMarketplaceConfigs();
+      const configs = await fetchMarketplaceConfigs(network);
       const names = configs.map((m) => m.name); 
       setMarketplaces(["All", ...names]);
     }
