@@ -729,8 +729,6 @@ export async function fetchMarketplaceConfigs(network: Network): Promise<Marketp
       return [];
     }
 
-    console.log("marketplace", marketplaceItems);
-    
     // Group marketplaces by their base name
     const groupedMarketplaces: Record<string, string[]> = {};
     
