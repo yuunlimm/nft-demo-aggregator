@@ -62,7 +62,7 @@ interface NFT {
   amount: string;
 }
 
-const aggregatorAddress = "0xda55044800bd23abdf48b304f3cb2b55ca49b304ad4337654c0ea9ffbf85d58e";
+export const aggregatorAddress = "0x58e9a78b5cc2c0057727b434a61ae2b2a048171836fcbc75f22e0cedff627723";
 
 const ListNFTForm = ({ network }: { network: Network }) => {
   const { account, connected, connect, wallets, signAndSubmitTransaction } = useWallet();

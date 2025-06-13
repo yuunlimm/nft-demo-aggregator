@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
 import { InputTransactionData, useWallet } from "@aptos-labs/wallet-adapter-react";
 import { toast } from "sonner";
+import { aggregatorAddress } from "./ListNFTForm";
 
 interface NFT {
   id: string;
@@ -56,8 +57,6 @@ export const MARKETPLACE_ADDRESS_MAP: Record<Network, Record<string, string>> = 
     "third_party_marketplace": "",
   }
 };
-
-const aggregatorAddress = "0xda55044800bd23abdf48b304f3cb2b55ca49b304ad4337654c0ea9ffbf85d58e";
 
 // export const MARKETPLACE_MODULE_MAP: Record<string, string> = {
 //   "bluemove": "0xabc...123",
