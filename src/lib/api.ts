@@ -826,7 +826,7 @@ export async function fetchAggregatorStats(network: Network): Promise<Aggregator
       console.error('❌ Failed to get listings count:', await listingsResponse.text());
     }
     return {
-      total_marketplaces: 4,
+      total_marketplaces: marketplaceConfigs.length,
       total_active_listings: totalActiveListings,
     };
   } catch (error) {
@@ -917,7 +917,10 @@ export async function fetchCollectionsByVolume(params: {
     url.searchParams.append('offset', offset.toString());
     url.searchParams.append('time_period', timePeriod);
 
-    const response = await fetch(url.toString());
+    const response = await fetchWithRetry(url.toString(), {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    }, 0, 5000, network);
 
     if (!response.ok) {
       console.error(`REST API request failed: ${response.status} ${response.statusText}`);
@@ -925,7 +928,6 @@ export async function fetchCollectionsByVolume(params: {
     }
 
     const data = await response.json();
-    console.log('Collections by volume:', data);
 
     // Process the collections to convert amounts
     if (data.data && Array.isArray(data.data)) {
@@ -967,7 +969,10 @@ export async function fetchCollectionsBySales(params: {
     url.searchParams.append('offset', offset.toString());
     url.searchParams.append('time_period', timePeriod);
 
-    const response = await fetch(url.toString());
+    const response = await fetchWithRetry(url.toString(), {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    }, 0, 5000, network);
 
     if (!response.ok) {
       console.error(`REST API request failed: ${response.status} ${response.statusText}`);
@@ -975,7 +980,6 @@ export async function fetchCollectionsBySales(params: {
     }
 
     const data = await response.json();
-    console.log('Collections by sales:', data);
 
     // Process the collections
     if (data.data && Array.isArray(data.data)) {
@@ -1016,7 +1020,10 @@ export async function fetchCollectionsByFloorPrice(params: {
     url.searchParams.append('offset', offset.toString());
     url.searchParams.append('time_period', timePeriod);
 
-    const response = await fetch(url.toString());
+    const response = await fetchWithRetry(url.toString(), {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    }, 0, 5000, network);
 
     if (!response.ok) {
       console.error(`REST API request failed: ${response.status} ${response.statusText}`);
@@ -1024,7 +1031,6 @@ export async function fetchCollectionsByFloorPrice(params: {
     }
 
     const data = await response.json();
-    console.log('Collections by floor price:', data);
 
     // Process the collections
     if (data.data && Array.isArray(data.data)) {
@@ -1050,10 +1056,22 @@ export async function fetchCollectionDetails(collectionId: string, network: Netw
   
   try {
     const [totalSalesResponse, totalVolumeResponse, topBuyersResponse, topSellersResponse] = await Promise.all([
-      fetch(`${endpoints.analytics}/nft/collection/total_sales_count?collection_id=${collectionId}`),
-      fetch(`${endpoints.analytics}/nft/collection/total_sales_volume?collection_id=${collectionId}`),
-      fetch(`${endpoints.analytics}/nft/collection/top_buyer?collection_id=${collectionId}&limit=5`),
-      fetch(`${endpoints.analytics}/nft/collection/top_seller?collection_id=${collectionId}&limit=5`)
+      fetchWithRetry(`${endpoints.analytics}/nft/collection/total_sales_count?collection_id=${collectionId}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      }, 0, 5000, network),
+      fetchWithRetry(`${endpoints.analytics}/nft/collection/total_sales_volume?collection_id=${collectionId}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      }, 0, 5000, network),
+      fetchWithRetry(`${endpoints.analytics}/nft/collection/top_buyer?collection_id=${collectionId}&limit=5`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      }, 0, 5000, network),
+      fetchWithRetry(`${endpoints.analytics}/nft/collection/top_seller?collection_id=${collectionId}&limit=5`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      }, 0, 5000, network)
     ]);
     
     // Process responses
@@ -1114,7 +1132,10 @@ export async function fetchMarketplaceStats(marketplace: string, network: Networ
   const endpoints = getEndpoints(network);
   
   try {
-    const response = await fetch(`${endpoints.analytics}/nft/marketplace/total_sales_count?marketplace=${marketplace}`);
+    const response = await fetchWithRetry(`${endpoints.analytics}/nft/marketplace/total_sales_count?marketplace=${marketplace}`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    }, 0, 5000, network);
     
     if (!response.ok) {
       console.error(`REST API request failed: ${response.status} ${response.statusText}`);

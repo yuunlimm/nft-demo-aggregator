@@ -14,55 +14,10 @@ import {
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
 import {
-  AccountAuthenticator,
-  AccountInfo,
-  AdapterWallet,
-  AnyRawTransaction,
-  AptosSignAndSubmitTransactionOutput,
   InputTransactionData,
-  NetworkInfo,
-  AptosSignMessageInput,
-  AptosSignMessageOutput,
-  AdapterNotDetectedWallet,
-  AptosChangeNetworkOutput,
-  PendingTransactionResponse,
-  InputSubmitTransactionData,
-  AptosSignInInput,
-  AptosSignInOutput,
 } from "@aptos-labs/wallet-adapter-core";
 
-interface NFT {
-  token_data_id: string;
-  token_standard: string;
-  current_token_data: {
-    token_name: string;
-    description: string;
-    image_url?: string;
-    object_core?: string;
-    collection_id: string;
-    is_fungible_v2?: boolean;
-    last_transaction_timestamp: string;
-    last_transaction_version: string;
-    token_uri?: string;
-    current_collection?: {
-      collection_id: string;
-      collection_name: string;
-      creator_address: string;
-      description: string;
-      token_standard: string;
-    };
-  };
-  token_properties_mutated_v1?: unknown;
-  table_type_v1?: string;
-  storage_id: string;
-  property_version_v1: string;
-  owner_address: string;
-  last_transaction_version: string;
-  last_transaction_timestamp: string;
-  amount: string;
-}
-
-export const aggregatorAddress = "0x58e9a78b5cc2c0057727b434a61ae2b2a048171836fcbc75f22e0cedff627723";
+export const aggregatorAddress = "0xa3a35de9347742e9baaee9eb42e3144e99819c33e8e4ac6d393d6eaeec5014b6";
 
 const ListNFTForm = ({ network }: { network: Network }) => {
   const { account, connected, connect, wallets, signAndSubmitTransaction } = useWallet();

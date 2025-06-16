@@ -12,11 +12,11 @@ const NETWORK_ENDPOINTS: Record<Network, NetworkEndpoints> = {
   },
   [Network.TESTNET]: {
     nftIndexer: 'https://api.testnet.aptoslabs.com/nft-aggregator-staging/v1/graphql',
-    analytics: 'https://api.testnet.aptoslabs.com/v1/analytics',
+    analytics: 'placeholder',
   },
   [Network.DEVNET]: {
     nftIndexer: 'https://api.devnet.staging.aptoslabs.com/nft-aggregator-staging/v1/graphql',
-    analytics: 'https://api.devnet.aptoslabs.com/v1/analytics',
+    analytics: 'placeholder',
   },
   [Network.LOCAL]: {
     nftIndexer: 'placeholder',

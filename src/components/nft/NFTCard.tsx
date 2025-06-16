@@ -29,7 +29,7 @@ export const MARKETPLACE_ADDRESS_MAP: Record<Network, Record<string, string>> = 
     "third_party_marketplace": "0xaed4462e5717f62045f32a4c5de793caf235940ef42edfdc1b7b73bc292ee2e6",
   },
   [Network.DEVNET]: {
-    "demo marketplace": "0x48ac47b64f890af66bb25b147f1d0afa439a584930f0f5060919e73f510ba80a",
+    "on chain marketplace": "0x48ac47b64f890af66bb25b147f1d0afa439a584930f0f5060919e73f510ba80a",
     "third_party_marketplace": "0x9079b776f1e977eae264e8fccbc6ee7027df7262d129e43b7835f8cdd77b522b",
   },
   [Network.TESTNET]: {
@@ -77,7 +77,7 @@ export const NFTCard = ({ nft, network }: { nft: NFT, network: Network }) => {
       toast.error("Wallet not connected");
       return;
     }
-
+    console.log(nft.marketplace);
     const moduleAddress = MARKETPLACE_ADDRESS_MAP[network][nft.marketplace.toLowerCase()];
     if (!moduleAddress) {
       toast.error(`Unknown marketplace: ${nft.marketplace}`);
