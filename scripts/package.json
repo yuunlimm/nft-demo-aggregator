@@ -1,0 +1,56 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "description": "TypeScript scripts to generate load",
+  "type": "module",
+  "scripts": {
+    "loadTest": "tsx src/loadTest.ts"
+  },
+  "dependencies": {
+    "@aptos-labs/aptos-client": "catalog:",
+    "@aptos-labs/ts-sdk": "file:/Users/yuunlim/aptos/aptos-ts-sdk",
+    "@google-cloud/recaptcha-enterprise": "catalog:",
+    "@google-cloud/secret-manager": "catalog:",
+    "@irys/sdk": "catalog:",
+    "@noble/hashes": "catalog:",
+    "@scalar/fastify-api-reference": "catalog:",
+    "@turnkey/crypto": "catalog:",
+    "@turnkey/sdk-server": "catalog:",
+    "axios": "catalog:",
+    "dotenv": "catalog:",
+    "fastify": "catalog:",
+    "http-errors": "catalog:",
+    "ioredis": "catalog:",
+    "libsodium-wrappers": "catalog:",
+    "lru-cache": "catalog:",
+    "node-pg-migrate": "catalog:",
+    "pg": "catalog:",
+    "pino": "catalog:",
+    "pino-http": "catalog:",
+    "prom-client": "catalog:",
+    "typescript": "catalog:",
+    "undici": "^7.10.0",
+    "uuid": "catalog:",
+    "zod": "catalog:",
+    "zod-to-json-schema": "catalog:"
+  },
+  "devDependencies": {
+    "@hey-api/client-fetch": "catalog:",
+    "@hey-api/openapi-ts": "catalog:",
+    "@types/http-errors": "catalog:",
+    "@types/libsodium-wrappers": "catalog:",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "@types/uuid": "catalog:",
+    "lint-staged": "catalog:",
+    "nodemon": "catalog:",
+    "pino-pretty": "catalog:",
+    "prettier": "catalog:",
+    "prettier-eslint": "catalog:",
+    "prettier-plugin-sh": "catalog:",
+    "ts-add-js-extension": "catalog:",
+    "tsx": "catalog:"
+  }
+
+
+} 

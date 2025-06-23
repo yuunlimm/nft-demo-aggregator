@@ -3,3 +3,5 @@
 .history
 .env
 .env.local
+
+scripts/marketplace-test-cache
